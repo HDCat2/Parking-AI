@@ -14,19 +14,38 @@ class Car:
                  length: int,
                  startXPos: int,
                  startYPos: int,
-                 startRotation: float):
+                 startRotation: float = 0,
+                 startNetwork = STARTING_NETWORK):
         self.width = width
         self.length = length
         self.pos = [startXPos, startYPos] # pos refers to the center of the car
         self.rotation = startRotation
         self.speed = 0
-        self.turnSpeed = 0
+        self.network = startNetwork
     
+    def getVision(obstacleList):
+        """ Get distance of obstacles from car in 8 directions for use in the neural network """
+        raise NotImplementedError
+
+    def getNetworkOutput(obstacleList):
+        """ Input current car parameters as well as vision, get acceleration and turn speed """
+        raise NotImplementedError
+
     def move(self):
+        """ Process car movement for a single frame """
+
+        acceleration, turnSpeed = self.getNetworkOutput()
+
+        self.speed = max(0, min(self.speed + acceleration, Car.MAX_CAR_SPEED))
+        self.rotation += turnSpeed
+        self.rotation %= 2 * math.pi
+        
         self.pos = [self.pos + self.speed * math.cos(self.rotation),
                     self.pos + self.speed * math.sin(self.rotation)]
-        self.rotation += self.turnSpeed
-        self.rotation %= 2 * math.pi
+    
+    def getNetwork():
+        """ Return network """
+        raise NotImplementedError
 
 class Obstacle:
     def __init__(self, xpos, ypos):
