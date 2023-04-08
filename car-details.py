@@ -1,20 +1,32 @@
 from pygame import *
+import math
+import car-ai as cai
 
+class Car:
+    MAX_CAR_SPEED = 100
+    MAX_CAR_TURN = 20
+    DEFAULT_WIDTH = 10
+    DEFAULT_LENGTH = 30
+    STARTING_NETWORK = None
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def __init__(self,
+                 width: int,
+                 length: int,
+                 startXPos: int,
+                 startYPos: int,
+                 startRotation: float):
+        self.width = width
+        self.length = length
+        self.pos = [startXPos, startYPos] # pos refers to the center of the car
+        self.rotation = startRotation
+        self.speed = 0
+        self.turnSpeed = 0
+    
+    def move(self):
+        self.pos = [self.pos + self.speed * math.cos(self.rotation),
+                    self.pos + self.speed * math.sin(self.rotation)]
+        self.rotation += self.turnSpeed
+        self.rotation %= 2 * math.pi
 
 class Obstacle:
     def __init__(self, xpos, ypos):
