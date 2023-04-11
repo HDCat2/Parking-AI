@@ -141,7 +141,12 @@ class Curb(Obstacle):
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
 
-
+class Simulation:
+    def __init__(self, mapFile, doVisualization, fpsFactor, neuralNet):
+        mapDetails = open(mapFile, "r")
+        self.fps = fpsFactor
+        self.obstacleList = []
+        self.visualize = doVisualization
 
 
 
