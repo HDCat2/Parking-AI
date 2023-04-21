@@ -3,7 +3,8 @@ import math
 import car_ai as cai
 
 class Car:
-    MAX_CAR_SPEED = 100
+    MAX_CAR_FORWARD_SPEED = 100
+    MAX_CAR_BACKWARD_SPEED = -50
     MAX_CAR_TURN = 20
     DEFAULT_WIDTH = 10
     DEFAULT_LENGTH = 30
@@ -21,6 +22,7 @@ class Car:
         self.pos = [startXPos, startYPos] # pos refers to the center of the car
         self.rotation = startRotation
         self.speed = 0
+        self.collisionModifier = [0,0]
         self.network = startNetwork
     
     def getVision(obstacleList):
@@ -34,17 +36,19 @@ class Car:
     def move(self):
         """ Process car movement for a single frame """
 
+        # Modify car velocity based on network
         acceleration, turnSpeed = self.getNetworkOutput()
 
-        self.speed = max(0, min(self.speed + acceleration, Car.MAX_CAR_SPEED))
+        self.speed = max(Car.MAX_CAR_BACKWARD_SPEED, min(self.speed + acceleration, Car.MAX_CAR_FORWARD_SPEED))
         self.rotation += turnSpeed
         self.rotation %= 2 * math.pi
         
+        # Change car position based on velocity
         self.pos = [self.pos + self.speed * math.cos(self.rotation),
                     self.pos + self.speed * math.sin(self.rotation)]
     
     def getNetwork(self):
-        """ Return network """
+        """ Return network for use in future iterations """
         raise NotImplementedError
 
 class Obstacle:
@@ -137,7 +141,12 @@ class Curb(Obstacle):
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
 
-
+class Simulation:
+    def __init__(self, mapFile, doVisualization, fpsFactor, neuralNet):
+        mapDetails = open(mapFile, "r")
+        self.fps = fpsFactor
+        self.obstacleList = []
+        self.visualize = doVisualization
 
 
 
