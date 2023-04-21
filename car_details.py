@@ -1,6 +1,6 @@
 from pygame import *
 import math
-import car-ai as cai
+import car_ai as cai
 
 class Car:
     MAX_CAR_SPEED = 100
@@ -43,7 +43,7 @@ class Car:
         self.pos = [self.pos + self.speed * math.cos(self.rotation),
                     self.pos + self.speed * math.sin(self.rotation)]
     
-    def getNetwork():
+    def getNetwork(self):
         """ Return network """
         raise NotImplementedError
 
