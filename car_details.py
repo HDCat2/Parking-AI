@@ -102,24 +102,11 @@ class ParkedCar(Obstacle):
                        (self.xpos - math.cos(self.angle)*self.length/2 + math.sin(self.angle)*self.width/2, self.ypos - math.sin(self.angle)*self.length/2 - math.cos(self.angle)*self.width/2),
                        (self.xpos - math.cos(self.angle)*self.length/2 - math.sin(self.angle)*self.width/2, self.ypos - math.sin(self.angle)*self.length/2 + math.cos(self.angle)*self.width/2)]
 
-        print(self.coords)
 
         super().__init__(xpos, ypos)
 
     def isColliding(self, car):
         """Checks for collision between two rotated rectangles"""
-
-        #TODO: Properly orient car with rotation + complex nums
-
-        #Get vertex coords of parked car
-
-        #collision detection+correction occurs AFTER movement
-        #look at every vertex of main car
-        #create a vector for each one, vertex+vel, to see if it crossed any of the parked car edges
-        #for each intersection, find which intersection-dist is longest, and correct main car by that amount
-
-        coords1 = self.coords
-        coords2 = car.coords
 
         carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
 
@@ -128,16 +115,13 @@ class ParkedCar(Obstacle):
             for j in range(4):
                 v2 = (car.coords[i]-carDelta, car.coords[i])
                 if doLinesIntersect(v1, v2):
-                    pass
+                    self.resolveCollision()
+                    return True
+        return False
 
-
-        newXpos = self.xpos
-        newYpos = self.ypos
-
-        distx = abs(self.xpos - car.xpos)
-        disty = abs(self.ypos - car.ypos)
-
-        return True
+    def resolveCollision(self):
+        """If a collision has occurred, moves the moving car out of the parked car"""
+        raise NotImplementedError
 
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
