@@ -4,6 +4,7 @@ import car_ai as cai
 
 
 def doLinesIntersect(l1, l2):
+    """Checks if two line segments intersect"""
     if l1[1][0] == l1[0][0]:
         if l2[1][0] == l2[0][0]:
             if l2[1][0] == l1[1][0]:
@@ -110,23 +111,35 @@ class ParkedCar(Obstacle):
 
         carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
 
+        flag = False
+        intersectionPoints = []
         for i in range(4):
             v1 = (self.coords[i], self.coords[(i+1)%4])
             for j in range(4):
                 v2 = (car.coords[i]-carDelta, car.coords[i])
                 if doLinesIntersect(v1, v2):
-                    self.resolveCollision()
-                    return True
-        return False
+                    #find intersection point
+                    ip = [0, 0]
+                    intersectionPoints.append(ip)
+                    flag = True
 
-    def resolveCollision(self):
+        self.resolveCollision(intersectionPoints)
+
+        return flag
+
+
+    def resolveCollision(self, intersectionPoints):
         """If a collision has occurred, moves the moving car out of the parked car"""
+
+        #find point of intersection between the car move vector and the parked car
+        #take the point of intersection s.t. the dist from intersection to endpoint of car delta is longest
+        #and move the car by that delta
+
         raise NotImplementedError
 
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
 
-a = ParkedCar(100, 150, 20, 100, 0.5)
 class LightPost(Obstacle):
     def __init__(self, xpos, ypos, radius):
         self.xpos = xpos
