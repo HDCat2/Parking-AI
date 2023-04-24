@@ -172,15 +172,22 @@ class Curb(Obstacle):
         self.length = length
 
     def isColliding(self, car):
+        """Checks for collision between two rotated rectangles"""
 
-        #Properly orient car with rotation + complex nums
-        newXpos = self.xpos
-        newYpos = self.ypos
+        carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
 
-        distx = abs(self.xpos - car.xpos)
-        disty = abs(self.ypos - car.ypos)
+        for i in range(4):
+            v1 = (self.coords[i], self.coords[(i+1)%4])
+            for j in range(4):
+                v2 = (car.coords[i]-carDelta, car.coords[i])
+                if doLinesIntersect(v1, v2):
+                    self.resolveCollision()
+                    return True
+        return False
 
-        return True
+    def resolveCollision(self):
+        """If a collision has occurred, moves the moving car out of the parked car"""
+        raise NotImplementedError
 
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
