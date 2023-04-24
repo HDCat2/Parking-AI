@@ -2,6 +2,9 @@ from pygame import *
 import math
 import car_ai as cai
 
+def doLinesIntersect(l1, l2):
+    return False
+
 class Car:
     MAX_CAR_FORWARD_SPEED = 100
     MAX_CAR_BACKWARD_SPEED = -50
@@ -58,11 +61,18 @@ class Obstacle:
 
 
 class ParkedCar(Obstacle):
-    def __init__(self, xpos, ypos, width, length):
+    def __init__(self, xpos, ypos, width, length, angle):
         self.xpos = xpos
         self.ypos = ypos
         self.width = width
         self.length = length
+        self.angle = angle
+        self.coords = [(self.xpos + math.cos(self.angle)*self.length/2 + math.sin(self.angle)*self.width/2, self.ypos + math.sin(self.angle)*self.length/2 - math.cos(self.angle)*self.width/2),
+                       (self.xpos + math.cos(self.angle)*self.length/2 - math.sin(self.angle)*self.width/2, self.ypos + math.sin(self.angle)*self.length/2 + math.cos(self.angle)*self.width/2),
+                       (self.xpos - math.cos(self.angle)*self.length/2 + math.sin(self.angle)*self.width/2, self.ypos - math.sin(self.angle)*self.length/2 - math.cos(self.angle)*self.width/2),
+                       (self.xpos - math.cos(self.angle)*self.length/2 - math.sin(self.angle)*self.width/2, self.ypos - math.sin(self.angle)*self.length/2 + math.cos(self.angle)*self.width/2)]
+
+        print(self.coords)
 
         super().__init__(xpos, ypos)
 
@@ -70,6 +80,26 @@ class ParkedCar(Obstacle):
         """Checks for collision between two rotated rectangles"""
 
         #TODO: Properly orient car with rotation + complex nums
+
+        #Get vertex coords of parked car
+
+        #collision detection+correction occurs AFTER movement
+        #look at every vertex of main car
+        #create a vector for each one, vertex+vel, to see if it crossed any of the parked car edges
+        #for each intersection, find which intersection-dist is longest, and correct main car by that amount
+
+        coords1 = self.coords
+        coords2 = car.coords
+
+        carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
+
+        for i in range(4):
+            v1 = (self.coords[i], self.coords[(i+1)%4])
+            for j in range(4):
+                v2 = (car.coords[i]-carDelta, car.coords[i])
+                if doLinesIntersect(v1, v2):
+                    pass
+
 
         newXpos = self.xpos
         newYpos = self.ypos
@@ -82,7 +112,7 @@ class ParkedCar(Obstacle):
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
 
-
+a = ParkedCar(100, 150, 20, 100, 0.5)
 class LightPost(Obstacle):
     def __init__(self, xpos, ypos, radius):
         self.xpos = xpos
