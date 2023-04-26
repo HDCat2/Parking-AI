@@ -4,35 +4,39 @@ import car_ai as cai
 
 
 def doLinesIntersect(l1, l2):
-    """Checks if two line segments intersect"""
-    if l1[1][0] == l1[0][0]:
-        if l2[1][0] == l2[0][0]:
-            if l2[1][0] == l1[1][0]:
-                return max(min(l1[0][1], l1[1][1]), min(l2[0][1], l2[1][1])) <= min(max(l1[0][1], l1[1][1]), max(l2[0][1], l2[1][1]))
-            else:
-                return False
-        else:
+    """Checks if two line segments intersect, returns False if not otherwise returns intersection point"""
+    if l1[1][0] == l1[0][0]: #If l1 is vertical
+        if l2[1][0] == l2[0][0]: #If l2 is also vertical
+            return False
+        else: #if l1 is vertical and l2 isn't
             m2 = (l2[1][1] - l2[0][1]) / (l2[1][0] - l2[0][0])
             b2 = l2[0][1] - m2 * l2[0][0]
             y = m2 * l1[0][0] + b2
-            return min(l1[0][1], l1[1][1]) <= y <= max(l1[0][1], l1[1][1])
-    if l2[1][0] == l2[0][0]:
+            if min(l1[0][1], l1[1][1]) <= y <= max(l1[0][1], l1[1][1]):
+                return [l1[1][0], y]
+            else:
+                return False
+    if l2[1][0] == l2[0][0]: #if l2 is vertical and l1 isn't
         m1 = (l1[1][1] - l1[0][1]) / (l1[1][0] - l1[0][0])
         b1 = l1[0][1] - m1 * l1[0][0]
         y = m1 * l2[0][0] + b1
-        return min(l2[0][1], l2[1][1]) <= y <= max(l2[0][1], l2[1][1])
+        if min(l2[0][1], l2[1][1]) <= y <= max(l2[0][1], l2[1][1]):
+            return [l2[1][0], y]
+        else:
+            return False
+    #neither line is vertical, use y=mx+b normally
     m1 = (l1[1][1] - l1[0][1]) / (l1[1][0] - l1[0][0])
     m2 = (l2[1][1] - l2[0][1]) / (l2[1][0] - l2[0][0])
     b1 = l1[0][1] - m1 * l1[0][0]
     b2 = l2[0][1] - m2 * l2[0][0]
-    if m1 == m2:
-        if b1 == b2:
-            return max(min(l1[0][0], l1[1][0]), min(l2[0][0], l2[1][0])) <= min(max(l1[0][0], l1[1][0]), max(l2[0][0], l2[1][0]))
-        else:
-            return False
+    if m1 == m2: #Parallel lines
+        return False
     else:
         x = (b2 - b1) / (m1 - m2)
-        return max(min(l1[0][0], l1[1][0]), min(l2[0][0], l2[1][0])) <= x <= min(max(l1[0][0], l1[1][0]), max(l2[0][0], l2[1][0]))
+        if max(min(l1[0][0], l1[1][0]), min(l2[0][0], l2[1][0])) <= x <= min(max(l1[0][0], l1[1][0]), max(l2[0][0], l2[1][0])):
+            return [x, m1*x+b1]
+        else:
+            return False
 
 
 
@@ -112,30 +116,39 @@ class ParkedCar(Obstacle):
         carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
 
         flag = False
-        intersectionPoints = []
+        intersectionPointPairs = []
         for i in range(4):
-            v1 = (self.coords[i], self.coords[(i+1)%4])
+            v1 = (self.coords[i], self.coords[(i+1)%4]) #Edge of parked car
             for j in range(4):
-                v2 = (car.coords[i]-carDelta, car.coords[i])
-                if doLinesIntersect(v1, v2):
-                    #find intersection point
-                    ip = [0, 0]
-                    intersectionPoints.append(ip)
+                v2 = ((car.coords[j][0] - carDelta[0], car.coords[j][1] - carDelta[1]), car.coords[j]) #Movement vector of one vertex of driving car
+                poi = doLinesIntersect(v1, v2)
+                if poi:
+                    #find intersection point between v1 and v2
+                    intersectionPointPairs.append([poi, car.coords[j]])
                     flag = True
 
-        self.resolveCollision(intersectionPoints)
+        self.resolveCollision(intersectionPointPairs, carDelta, car)
 
         return flag
 
 
-    def resolveCollision(self, intersectionPoints):
+    def resolveCollision(self, intersectionPointPairs, carDelta, car):
         """If a collision has occurred, moves the moving car out of the parked car"""
 
-        #find point of intersection between the car move vector and the parked car
-        #take the point of intersection s.t. the dist from intersection to endpoint of car delta is longest
-        #and move the car by that delta
+        curMax = -1
+        for pair in intersectionPointPairs:
+            dist = ((pair[1][0] - pair[0][0])**2 + (pair[1][1] - pair[0][1])**2)**0.5
+            if dist > curMax:
+                curMax = dist
 
-        raise NotImplementedError
+        deltaMag = (carDelta[0]**2 + carDelta[1]**2)**2
+        direction = (carDelta[0]/deltaMag, carDelta[1]/deltaMag)
+
+        correction = (-direction[0]*curMax, -direction[1]*curMax)
+
+        #TODO: Correct car position by correction
+
+
 
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
@@ -194,7 +207,7 @@ class Curb(Obstacle):
             for j in range(4):
                 v2 = (car.coords[i]-carDelta, car.coords[i])
                 if doLinesIntersect(v1, v2):
-                    self.resolveCollision()
+                    self.resolveCollision( )
                     return True
         return False
 
