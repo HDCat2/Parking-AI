@@ -202,18 +202,38 @@ class Curb(Obstacle):
 
         carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
 
+        flag = False
+        intersectionPointPairs = []
         for i in range(4):
-            v1 = (self.coords[i], self.coords[(i+1)%4])
+            v1 = (self.coords[i], self.coords[(i+1)%4]) #Edge of parked car
             for j in range(4):
-                v2 = (car.coords[i]-carDelta, car.coords[i])
-                if doLinesIntersect(v1, v2):
-                    self.resolveCollision( )
-                    return True
-        return False
+                v2 = ((car.coords[j][0] - carDelta[0], car.coords[j][1] - carDelta[1]), car.coords[j]) #Movement vector of one vertex of driving car
+                poi = doLinesIntersect(v1, v2)
+                if poi:
+                    #find intersection point between v1 and v2
+                    intersectionPointPairs.append([poi, car.coords[j]])
+                    flag = True
 
-    def resolveCollision(self):
+        self.resolveCollision(intersectionPointPairs, carDelta, car)
+
+        return flag
+
+
+    def resolveCollision(self, intersectionPointPairs, carDelta, car):
         """If a collision has occurred, moves the moving car out of the parked car"""
-        raise NotImplementedError
+
+        curMax = -1
+        for pair in intersectionPointPairs:
+            dist = ((pair[1][0] - pair[0][0])**2 + (pair[1][1] - pair[0][1])**2)**0.5
+            if dist > curMax:
+                curMax = dist
+
+        deltaMag = (carDelta[0]**2 + carDelta[1]**2)**2
+        direction = (carDelta[0]/deltaMag, carDelta[1]/deltaMag)
+
+        correction = (-direction[0]*curMax, -direction[1]*curMax)
+
+        #TODO: Correct car position by correction
 
     def update(self, screen):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
