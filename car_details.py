@@ -56,8 +56,9 @@ class Car:
     DEFAULT_WIDTH = 10
     DEFAULT_LENGTH = 30
     STARTING_NETWORK = None
-    CAR_ACCELERATION = 1
-    CAR_DECELERATION = -1
+    CAR_ACCELERATION = 0.01
+    CAR_DECELERATION = -0.01
+    FRICTION = 0.002
 
     def __init__(self,
                  width: int,
@@ -106,6 +107,11 @@ class Car:
 
     def move(self):
         """ Process car movement for a single frame """
+
+        if self.speed > 0:
+            self.speed = max(self.speed - Car.FRICTION, 0)
+        if self.speed < 0:
+            self.speed = min(self.speed + Car.Friction, 0)
 
         self.rotation += self.wheelAngle * Car.MAX_CAR_TURN * (self.speed/Car.MAX_CAR_FORWARD_SPEED)
         
@@ -303,9 +309,9 @@ class Simulation:
 
 
             if keys[K_w]:
-                c.gas(0.01)
+                c.gas(1)
             elif keys[K_s]:
-                c.gas(-0.01)
+                c.gas(-1)
 
             c.turn((mx//(WIDTH//10)-5)*0.1)
 
