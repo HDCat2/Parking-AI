@@ -52,7 +52,7 @@ def getRectCoords(xpos, ypos, width, length, angle):
 class Car:
     MAX_CAR_FORWARD_SPEED = 10
     MAX_CAR_BACKWARD_SPEED = -5
-    MAX_CAR_TURN = 0.1
+    MAX_CAR_TURN = 0.3
     DEFAULT_WIDTH = 10
     DEFAULT_LENGTH = 30
     STARTING_NETWORK = None
@@ -95,7 +95,7 @@ class Car:
 
     def turn(self, val):
         #val is -1 - 1
-        self.wheelAngle = min(max(self.wheelAngle + val, -1), 1)
+        self.wheelAngle = min(max(val, -1), 1)
 
     def wip(self):
         # Modify car velocity based on network
@@ -108,10 +108,14 @@ class Car:
     def move(self):
         """ Process car movement for a single frame """
 
+        self.pos[0] += self.collisionModifier[0]
+        self.pos[1] += self.collisionModifier[1]
+        self.collisionModifier = [0, 0]
+
         if self.speed > 0:
             self.speed = max(self.speed - Car.FRICTION, 0)
         if self.speed < 0:
-            self.speed = min(self.speed + Car.Friction, 0)
+            self.speed = min(self.speed + Car.FRICTION, 0)
 
         self.rotation += self.wheelAngle * Car.MAX_CAR_TURN * (self.speed/Car.MAX_CAR_FORWARD_SPEED)
         
@@ -143,10 +147,7 @@ class ParkedCar(Obstacle):
         self.width = width
         self.length = length
         self.angle = angle
-        self.coords = [(self.xpos + math.cos(self.angle)*self.length/2 + math.sin(self.angle)*self.width/2, self.ypos + math.sin(self.angle)*self.length/2 - math.cos(self.angle)*self.width/2),
-                       (self.xpos + math.cos(self.angle)*self.length/2 - math.sin(self.angle)*self.width/2, self.ypos + math.sin(self.angle)*self.length/2 + math.cos(self.angle)*self.width/2),
-                       (self.xpos - math.cos(self.angle)*self.length/2 + math.sin(self.angle)*self.width/2, self.ypos - math.sin(self.angle)*self.length/2 - math.cos(self.angle)*self.width/2),
-                       (self.xpos - math.cos(self.angle)*self.length/2 - math.sin(self.angle)*self.width/2, self.ypos - math.sin(self.angle)*self.length/2 + math.cos(self.angle)*self.width/2)]
+        self.coords = getRectCoords(self.xpos, self.ypos, self.width, self.length, self.angle)
 
 
         super().__init__(xpos, ypos)
@@ -161,16 +162,22 @@ class ParkedCar(Obstacle):
         for i in range(4):
             v1 = (self.coords[i], self.coords[(i+1)%4]) #Edge of parked car
             for j in range(4):
-                v2 = ((car.coords[j][0] - carDelta[0], car.coords[j][1] - carDelta[1]), car.coords[j]) #Movement vector of one vertex of driving car
+
+                v2 = ((car.vertices[j][0] - carDelta[0], car.vertices[j][1] - carDelta[1]), car.vertices[j]) #Movement vector of one vertex of driving car
+                print(carDelta, car.vertices)
                 poi = doLinesIntersect(v1, v2)
+
                 if poi:
                     #find intersection point between v1 and v2
-                    intersectionPointPairs.append([poi, car.coords[j]])
+                    intersectionPointPairs.append([poi, car.vertices[j]])
                     flag = True
+
+        if flag == False:
+            return False
 
         self.resolveCollision(intersectionPointPairs, carDelta, car)
 
-        return flag
+        return True
 
 
     def resolveCollision(self, intersectionPointPairs, carDelta, car):
@@ -183,16 +190,22 @@ class ParkedCar(Obstacle):
                 curMax = dist
 
         deltaMag = (carDelta[0]**2 + carDelta[1]**2)**2
+
+        if deltaMag == 0:
+            return
+
         direction = (carDelta[0]/deltaMag, carDelta[1]/deltaMag)
 
         correction = (-direction[0]*curMax, -direction[1]*curMax)
+
+        car.collisionModifier = correction
 
         #TODO: Correct car position by correction
 
 
 
     def update(self, screen):
-        draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
+        draw.polygon(screen, (200, 200, 200), self.coords, 0)
 
 class LightPost(Obstacle):
     def __init__(self, xpos, ypos, radius):
@@ -290,13 +303,14 @@ class Simulation:
     def run(self):
         init()
         running = True
-
         clock = time.Clock()
-
         WIDTH, HEIGHT = 1280, 720
-
         screen = display.set_mode((WIDTH, HEIGHT))
+
+        a = ParkedCar(600, 600, 80, 200, 1)
+        b = ParkedCar(800, 600, 80, 200, 1)
         c = Car(80, 200, 400, 300, 0, None)
+
         while running:
             keys = key.get_pressed()
             mx, my = mouse.get_pos()
@@ -305,29 +319,24 @@ class Simulation:
                     running = False
                     break
 
-
-
-
             if keys[K_w]:
                 c.gas(1)
             elif keys[K_s]:
                 c.gas(-1)
-
             c.turn((mx//(WIDTH//10)-5)*0.1)
 
-
+            a.isColliding(c)
+            b.isColliding(c)
             c.move()
 
             screen.fill((255, 255, 255))
-
             c.update(screen)
-
+            a.update(screen)
+            b.update(screen)
 
             display.flip()
             clock.tick(self.fps)
-
         quit()
-
 
 
 
