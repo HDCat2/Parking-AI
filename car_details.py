@@ -38,30 +38,43 @@ def doLinesIntersect(l1, l2):
         else:
             return False
 
+def getRectCoords(xpos, ypos, width, length, angle):
+    return [(xpos + math.cos(angle) * length / 2 + math.sin(angle) * width / 2,
+                    ypos + math.sin(angle) * length / 2 - math.cos(angle) * width / 2),
+                   (xpos - math.cos(angle) * length / 2 + math.sin(angle) * width / 2,
+                    ypos - math.sin(angle) * length / 2 - math.cos(angle) * width / 2),
+                   (xpos - math.cos(angle) * length / 2 - math.sin(angle) * width / 2,
+                    ypos - math.sin(angle) * length / 2 + math.cos(angle) * width / 2),
+                    (xpos + math.cos(angle) * length / 2 - math.sin(angle) * width / 2,
+                     ypos + math.sin(angle) * length / 2 + math.cos(angle) * width / 2)]
 
 
 class Car:
-    MAX_CAR_FORWARD_SPEED = 100
-    MAX_CAR_BACKWARD_SPEED = -50
-    MAX_CAR_TURN = 20
+    MAX_CAR_FORWARD_SPEED = 10
+    MAX_CAR_BACKWARD_SPEED = -5
+    MAX_CAR_TURN = 0.1
     DEFAULT_WIDTH = 10
     DEFAULT_LENGTH = 30
     STARTING_NETWORK = None
+    CAR_ACCELERATION = 1
+    CAR_DECELERATION = -1
 
     def __init__(self,
                  width: int,
                  length: int,
-                 startXPos: int,
-                 startYPos: int,
+                 startXPos: float,
+                 startYPos: float,
                  startRotation: float = 0,
                  startNetwork = STARTING_NETWORK):
         self.width = width
         self.length = length
         self.pos = [startXPos, startYPos] # pos refers to the center of the car
+        self.wheelAngle = 0
         self.rotation = startRotation
         self.speed = 0
         self.collisionModifier = [0,0]
         self.network = startNetwork
+        self.vertices = getRectCoords(self.pos[0], self.pos[1], self.width, self.length, self.rotation)
     
     def getVision(obstacleList):
         """ Get distance of obstacles from car in 8 directions for use in the neural network """
@@ -71,23 +84,45 @@ class Car:
         """ Input current car parameters as well as vision, get acceleration and turn speed """
         raise NotImplementedError
 
-    def move(self):
-        """ Process car movement for a single frame """
+    def gas(self, val):
+        #val is -1 to 1 (brake to gas)
+        if val > 0:
+            self.speed = min(Car.MAX_CAR_FORWARD_SPEED, self.speed + Car.CAR_ACCELERATION * val)
+        elif val < 0:
+            self.speed = max(Car.MAX_CAR_BACKWARD_SPEED, self.speed - Car.CAR_DECELERATION * val)
 
+
+    def turn(self, val):
+        #val is -1 - 1
+        self.wheelAngle = min(max(self.wheelAngle + val, -1), 1)
+
+    def wip(self):
         # Modify car velocity based on network
         acceleration, turnSpeed = self.getNetworkOutput()
 
         self.speed = max(Car.MAX_CAR_BACKWARD_SPEED, min(self.speed + acceleration, Car.MAX_CAR_FORWARD_SPEED))
         self.rotation += turnSpeed
         self.rotation %= 2 * math.pi
+
+    def move(self):
+        """ Process car movement for a single frame """
+
+        self.rotation += self.wheelAngle * Car.MAX_CAR_TURN * (self.speed/Car.MAX_CAR_FORWARD_SPEED)
         
         # Change car position based on velocity
-        self.pos = [self.pos + self.speed * math.cos(self.rotation),
-                    self.pos + self.speed * math.sin(self.rotation)]
+        self.pos = [self.pos[0] + self.speed * math.cos(self.rotation),
+                    self.pos[1] + self.speed * math.sin(self.rotation)]
+
+        # Update the vertices of the car rectangle
+        self.vertices = getRectCoords(self.pos[0], self.pos[1], self.width, self.length, self.rotation)
     
     def getNetwork(self):
         """ Return network for use in future iterations """
         raise NotImplementedError
+
+    def update(self, screen):
+        """ Display the driving car to the screen """
+        draw.polygon(screen, (255, 0, 0), self.vertices, 0)
 
 class Obstacle:
     def __init__(self, xpos, ypos):
@@ -113,7 +148,7 @@ class ParkedCar(Obstacle):
     def isColliding(self, car):
         """Checks for collision between two rotated rectangles"""
 
-        carDelta = [car.speed*math.cos(car.rotation), car.spped*math.sin(car.rotation)]
+        carDelta = [car.speed*math.cos(car.rotation), car.speed*math.sin(car.rotation)]
 
         flag = False
         intersectionPointPairs = []
@@ -239,11 +274,55 @@ class Curb(Obstacle):
         draw.rect(screen, (200, 200, 200), (self.xpos - self.width//2, self.ypos-self.length//2, self.width, self.length), 0)
 
 class Simulation:
-    def __init__(self, mapFile, doVisualization, fpsFactor, neuralNet):
-        mapDetails = open(mapFile, "r")
+    def __init__(self, mapFile, doVisualization, fpsFactor,  neuralNet, isTest = True):
+        #mapDetails = open(mapFile, "r")
         self.fps = fpsFactor
         self.obstacleList = []
         self.visualize = doVisualization
+        self.isTest = isTest
+
+    def run(self):
+        init()
+        running = True
+
+        clock = time.Clock()
+
+        WIDTH, HEIGHT = 1280, 720
+
+        screen = display.set_mode((WIDTH, HEIGHT))
+        c = Car(80, 200, 400, 300, 0, None)
+        while running:
+            keys = key.get_pressed()
+            mx, my = mouse.get_pos()
+            for action in event.get():
+                if action.type == QUIT:
+                    running = False
+                    break
+
+
+
+
+            if keys[K_w]:
+                c.gas(0.01)
+            elif keys[K_s]:
+                c.gas(-0.01)
+
+            c.turn((mx//(WIDTH//10)-5)*0.1)
+
+
+            c.move()
+
+            screen.fill((255, 255, 255))
+
+            c.update(screen)
+
+
+            display.flip()
+            clock.tick(self.fps)
+
+        quit()
+
+
 
 
 
