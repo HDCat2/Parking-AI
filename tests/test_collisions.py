@@ -35,7 +35,7 @@ def test_line_intersection_endpoint():
     assert(cde.doLinesIntersect(l1,l3) == False)
     assert(cde.doLinesIntersect(l2,l3) == [0,0])
     assert(cde.doLinesIntersect(l1,l4) == [0,1])
-    assert(cde.doLinesIntersect(l1,l5) == [0,1])
+    assert(cde.doLinesIntersect(l1,l5) == False)
 
 def test_line_intersection_random():
     # random lines
